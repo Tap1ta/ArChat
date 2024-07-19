@@ -62,7 +62,7 @@ app.use(logger('dev'));
 app.use(cors());
 
 // Middleware para servir archivos estáticos
-app.use(express.static('client'));
+app.use(express.static('server/client'));
 
 // Ruta principal
 app.get('/', (req, res) => {
