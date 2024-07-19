@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArChat</title>
+
+
+  <!-- Importar Socket.io -->
+  <script type="module" src="https://cdn.socket.io/4.3.2/socket.io.esm.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #e1f5fe;
+      background-image: url("https://wallpaper.forfun.com/fetch/f0/f05d29dfeca21a48113a9a7e6001c074.jpeg");
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    /* Estilo para el contenedor del chat */
+#chat {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  width: 400px;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Estilo para el encabezado del chat */
+#chat-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #f0f0f0;
+            text-align: center;
+            padding: 10px;
+            font-size: 16px;
+}
+
+/* Estilo para el título del chat */
+#chat-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+/* Estilo para el mensaje de bienvenida */
+#welcome-message {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #e1f5fe;
+  background-color: #f26c6d;
+  border-radius: 5px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+
+    /* Estilos del chat */
+    #chat {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      width: 400px;
+      max-height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #messages {
+      list-style-type: none;
+      padding: 20px;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 500px;
+    }
+
+    #messages li {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background-color: #f1f8e9;
+      color: #333;
+    }
+
+    #messages li:nth-child(odd) {
+      background-color: #e3f2fd;
+    }
+
+    #messages li p {
+      margin: 0;
+    }
+
+    #messages li small {
+      display: block;
+      text-align: right;
+      color: #90a4ae;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    #form {
+      display: flex;
+      padding: 10px;
+      background-color: #fafafa;
+      border-top: 1px solid #ddd;
+    }
+
+    #input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+
+    #input:focus {
+      outline: none;
+      border-color: #0288d1;
+    }
+
+    #form button {
+      padding: 10px 20px;
+      background-color: #f26c6d;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #form button:hover {
+      background-color: #f9c879;
+    }
+
+    /* Estilos para barra de desplazamiento */
+    #messages::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #messages::-webkit-scrollbar-thumb {
+      background-color: #f26c6d;
+      border-radius: 10px;
+    }
+
+    #messages::-webkit-scrollbar-track {
+      background-color: #f1f8e9;
+    }
+
+    /* Colores de usuario */
+    .aletarunte {
+      background-color: #fce4ec; /* Rosa */
+    }
+
+    .user2 {
+      background-color: #e8eaf6; /* Lila */
+    }
+
+    .user3 {
+      background-color: #c8e6c9; /* Verde */
+    }
+
+    .user4 {
+      background-color: #ffe0b2; /* Naranja */
+    }
+
+    .user5 {
+      background-color: #b2dfdb; /* Azul claro */
+    }
+
+    #toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 5px;
+    display: none;
+  }
+
+
+  
+  </style>
+
+  <script type="module">
+    import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js';
+    //const socket = io('http://localhost:3000');
+
+// Obtener nombre de usuario
+    const getUsername = async () => {
+  try {
+    let username = localStorage.getItem('username');
+    
+    if (!username) {
+      // Realizar solicitud a la API para obtener un nombre de usuario aleatorio
+      const res = await fetch('https://random-data-api.com/api/users/random_user');
+      const { username: randomUsername } = await res.json();
+      
+      // Asignar el nombre de usuario aleatorio obtenido a localStorage
+      username = randomUsername;
+      localStorage.setItem('username', username);
+    }
+    
+    return username;
+  } catch (error) {
+    console.error('Error en getUsername:', error);
+    // Manejar el error de manera adecuada, por ejemplo, retornando un valor predeterminado
+    return 'UsuarioAnonimo'; // Valor predeterminado en caso de error
+  }
+};
+    // Obtener color de usuario basado en el nombre
+    const getUserColorClass = (username) => {
+      const colors = ['user1', 'user2', 'user3', 'user4', 'user5'];
+      const index = username.charCodeAt(0) % colors.length;
+      return colors[index];
+    };
+
+    // Inicializar Socket.io después de obtener el nombre de usuario
+    (async () => {
+      const username = await getUsername();
+      const userColorClass = getUserColorClass(username);
+// 172.20.125.62
+      const socket = io('http://192.168.100.132:3000', {
+        auth: {
+          username,
+          serverOffset: 0
+        }
+      });
+
+      console.log('Usuario conectado:', username);
+
+
+  // Mostrar toast cuando un usuario se conecta
+  socket.on('user connected', (username) => {
+    console.log('Usuario conectado:', username);
+    const toast = document.getElementById('toast');
+    toast.textContent = `¡${username} se ha conectado!`;
+    toast.style.display = 'block';
+
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 4000); 
+  });
+
+      // Manejar errores de conexión
+      socket.on('connect_error', (err) => {
+        console.error('Error de conexión:', err);
+      });
+
+      // Manejar mensajes entrantes
+      socket.on('chat message', ({ msg, sender }) => {
+        const isCurrentUser = sender === username;
+        const item = `
+          <li class="${isCurrentUser ? 'current-user' : userColorClass}">
+            <p>${msg}</p>
+            <small>${isCurrentUser ? 'Tú' : sender}</small>
+          </li>`;
+        document.getElementById('messages').insertAdjacentHTML('beforeend', item);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight; // Scroll automático
+      });
+       // Escuchar evento de usuario desconectado
+    socket.on('user disconnected', (connectedUsers) => {
+      console.log('Usuarios conectados:', connectedUsers);
+
+      // Mostrar mensaje emergente
+      const toast = document.getElementById('toast');
+      toast.textContent = '¡Un usuario se ha desconectado!';
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4000); 
+    });
+
+      // Enviar mensaje
+      const form = document.getElementById('form');
+      const input = document.getElementById('input');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input.value.trim()) {
+          const message = { msg: input.value.trim(), sender: username };
+          console.log('Mensaje enviado:', message);
+          socket.emit('chat message', message);
+          input.value = '';
+        }
+      });
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="welcome-message">
+    <center>¡BIENVENIDO USTED ESTA EN ARCHAT!</center>
+
+  <section id="chat">
+    <ul id="messages"></ul>
+    <form id="form">
+      <input type="text" id="input" placeholder="Escribe un mensaje..." autocomplete="off" required>
+      <button type="submit">Enviar</button>
+    </form>
+  </section>
+  <div id="toast"></div>
+</body>
+
+</html>
